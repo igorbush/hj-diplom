@@ -28,6 +28,7 @@ const menuUrl = menu.querySelector('.menu__url');
 const menuCopy = menu.querySelector('.menu_copy');
 const imageLoader = app.querySelector('.image-loader');
 const canvas = document.createElement('canvas');
+let connection;
 canvas.style.position = 'absolute';
 app.insertBefore(canvas, error);
 const ctx = canvas.getContext('2d');
@@ -58,6 +59,8 @@ menu.style.left = app.offsetWidth / 2 - parseInt(getComputedStyle(menu).width) /
 menu.style.top = app.offsetHeight / 2 - parseInt(getComputedStyle(menu).height) / 2 + 'px';
 currentImage.src = '';
 app.removeChild(commentsForm);
+
+
 
 ////////////////////////////   DRAG AND DROP   /////////////////////////////////
 
@@ -94,8 +97,9 @@ drag.addEventListener('dragstart', () => {
     return false;
 });
 
-////////////////////////////////   BURGER  /////////////////////////////////////
+/////////////////////////////   BURGER AND MENU  /////////////////////////////////
 
+menu.dataset.state = 'initial';
 burger.addEventListener('click', () => {
     menu.dataset.state = 'default';
     modeElements.forEach(el => el.dataset.state = '');
@@ -119,6 +123,22 @@ currentImage.addEventListener('error', () => {
     checkImg = true;
 });
 
+if (sessionStorage.getItem('imgId')) {
+
+    imgId = sessionStorage.getItem('imgId');
+    currentImage.src = sessionStorage.getItem('imgUrl');
+    menuUrl.value = sessionStorage.getItem('imgSharedLink');
+    currentImage.addEventListener('load', () => {
+        resizeCanvas();
+        getMask();
+        checkImg = false;
+        menu.dataset.state = 'selected';
+        share.dataset.state = 'selected';
+        shareTools.classList.remove('tool');
+        wss();
+    });
+}
+
 function showFile(file) {
     if (file.type === 'image/jpeg' || file.type === 'image/png') {
         let imgSrc = URL.createObjectURL(file);
@@ -140,12 +160,13 @@ function showFile(file) {
                 wss();
                 currentImage.src = imgData.url;
                 menuUrl.value = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
-                menuCopy.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    menuUrl.select();
-                    document.execCommand('copy');
-                });
-            }
+                sessionStorage.setItem('imgId', imgData.id);
+                sessionStorage.setItem('imgUrl', imgData.url);
+                sessionStorage.setItem('imgSharedLink', `${window.location.origin}${window.location.pathname}?id=${imgData.id}`);
+                if (window.location.search) {
+                    document.location.href = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
+                };
+            };
         });
         xhr.send(formData);
         currentImage.addEventListener('load', () => {
@@ -156,6 +177,7 @@ function showFile(file) {
             menu.dataset.state = 'selected';
             share.dataset.state = 'selected';
             shareTools.classList.remove('tool');
+            document.querySelectorAll('.comments__form').forEach(comment => { comment.remove() });
         });
     } else {
         showError('Неверный формат файла. Пожалуйста, выберите изображение в формате .jpg или .png.');
@@ -286,7 +308,7 @@ function addCommentEvent(event) {
         document.querySelectorAll('.comments__form').forEach(form => {
             if (form.dataset.hasComments === 'false') {
                 form.remove();
-            }
+            };
         });
         if (menuToggle[0].checked === true) {
             let left = event.layerX - 21;
@@ -371,7 +393,7 @@ function createCommentForm(left, top) {
         } else {
             event.target.checked = false;
             event.target.parentElement.style.zIndex = '2';
-        }
+        };
     });
 
     commentClose.addEventListener('click', (event) => {
@@ -391,7 +413,6 @@ function createCommentForm(left, top) {
             commentsLoader.style.display = 'none';
         });
         xhr.send(app);
-        commentMarkerCheckbox.checked = true;
     });
     return commentForm;
 };
@@ -417,7 +438,11 @@ share.addEventListener('click', () => {
     canvas.removeEventListener('click', addCommentEvent);
     canvas.removeEventListener('mousemove', circle);
 });
-
+menuCopy.addEventListener('click', (event) => {
+    event.preventDefault();
+    menuUrl.select();
+    document.execCommand('copy');
+});
 ////////////////////////////   FOLLOWING A LINK   //////////////////////////////
 
 if (window.location.search) {
@@ -442,6 +467,8 @@ if (window.location.search) {
             getMask();
             checkImg = false;
             menu.dataset.state = 'selected';
+            modeElements.forEach(el => el.dataset.state = '');
+            toolsElements.forEach(el => el.classList.add('tool'));
             comments.dataset.state = 'selected';
             commentsTools.classList.remove('tool');
             canvas.addEventListener('click', addCommentEvent);
@@ -476,16 +503,6 @@ if (window.location.search) {
     });
 };
 
-function tick() {
-    if (menu.offsetHeight > 66) {
-        menu.style.transitionDelay = '0s';
-        menu.style.left = (app.offsetWidth - menu.offsetWidth) - 1 + 'px';
-    };
-    window.requestAnimationFrame(tick);
-};
-tick();
-
-let connection;
 function wss() {
     connection = new WebSocket(`wss://neto-api.herokuapp.com/pic/${imgId}`);
     connection.addEventListener('message', event => {
@@ -510,11 +527,13 @@ function wss() {
 };
 
 const trottledSendMask = throttleCanvas(sendMaskState, 1000);
+
 function sendMaskState() {
     canvas.toBlob(function(blob) {
         connection.send(blob);
     });
 };
+
 function throttleCanvas(callback, delay) {
     let isWaiting = false;
     return function() {
@@ -529,18 +548,18 @@ function throttleCanvas(callback, delay) {
 };
 
 window.onbeforeunload = function() {
-    connection.onclose = function () {};
+    connection.onclose = function() {};
     connection.close();
 };
 
 function updateCommentForm(newComment) {
-	if (!newComment) return;
-	Object.keys(newComment).forEach(id => {
-		if (id in showComments) return;
-		showComments[id] = newComment[id];
-		let needCreateNewForm = true;
-		Array.from(divMask.querySelectorAll('.comments__form')).forEach(form => {
-			if (+form.dataset.left === showComments[id].left && +form.dataset.top === showComments[id].top) {
+    if (!newComment) return;
+    Object.keys(newComment).forEach(id => {
+        if (id in showComments) return;
+        showComments[id] = newComment[id];
+        let needCreateNewForm = true;
+        Array.from(divMask.querySelectorAll('.comments__form')).forEach(form => {
+            if (+form.dataset.left === showComments[id].left && +form.dataset.top === showComments[id].top) {
                 let parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
                 parseComment.dataset.commentId = showComments[id].id;
                 let commentBody = form.querySelector('.comments__body');
@@ -549,47 +568,100 @@ function updateCommentForm(newComment) {
                 let commentMarkerCheckbox = form.querySelector('.comments__marker-checkbox');
                 let commentInput = form.querySelector('.comments__input');
                 commentMarkerCheckbox.style.display = '';
-                if(commentMarkerCheckbox.checked) {
-                    commentMarkerCheckbox.checked = true;
+
+                if (commentMarkerCheckbox.checked === true) {
+                    document.querySelectorAll('.comments__marker-checkbox').forEach(marker => {
+                        marker.checked = false;
+                        commentMarkerCheckbox.checked = true;
+                        commentMarkerCheckbox.parentElement.style.zIndex = '3';
+                    });
                 } else {
-                    commentMarkerCheckbox.checked = false
+                    commentMarkerCheckbox.checked = false;
+                    commentMarkerCheckbox.parentElement.style.zIndex = '2';
                 };
+
                 let commentClose = form.querySelector('.comments__close');
                 commentClose.disabled = false;
                 form.dataset.hasComments = 'true';
                 needCreateNewForm = false;
                 commentInput.value = '';
-			};
-		});
-		if (needCreateNewForm) {
+            };
+        });
+        if (needCreateNewForm) {
             let parseForm = createCommentForm(showComments[id].left, showComments[id].top);
-			let parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
-                parseComment.dataset.commentId = newComment[id].id;
-                let commentBody = parseForm.querySelector('.comments__body');
-                let commentsLoader = parseForm.querySelector('.loader');
-                commentBody.insertBefore(parseComment, commentsLoader);
-                let commentMarkerCheckbox = parseForm.querySelector('.comments__marker-checkbox');
-                let commentInput = parseForm.querySelector('.comments__input');
-                commentMarkerCheckbox.style.display = '';
-                if(commentMarkerCheckbox.checked) {
+            let parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
+            parseComment.dataset.commentId = newComment[id].id;
+            let commentBody = parseForm.querySelector('.comments__body');
+            let commentsLoader = parseForm.querySelector('.loader');
+            commentBody.insertBefore(parseComment, commentsLoader);
+            let commentMarkerCheckbox = parseForm.querySelector('.comments__marker-checkbox');
+            let commentInput = parseForm.querySelector('.comments__input');
+            commentMarkerCheckbox.style.display = '';
+
+            if (commentMarkerCheckbox.checked === true) {
+                document.querySelectorAll('.comments__marker-checkbox').forEach(marker => {
+                    marker.checked = false;
                     commentMarkerCheckbox.checked = true;
-                } else {
-                    commentMarkerCheckbox.checked = false
-                };
-                let commentClose = parseForm.querySelector('.comments__close');
-                commentClose.disabled = false;
-                parseForm.dataset.hasComments = 'true';
-                commentInput.value = '';
-                divMask.appendChild(parseForm);
-		};
-	});
+                    commentMarkerCheckbox.parentElement.style.zIndex = '3';
+                });
+            } else {
+                commentMarkerCheckbox.checked = false;
+                commentMarkerCheckbox.parentElement.style.zIndex = '2';
+            };
+            commentMarkerCheckbox.checked = false;
+            let commentClose = parseForm.querySelector('.comments__close');
+            commentClose.disabled = false;
+            parseForm.dataset.hasComments = 'true';
+            commentInput.value = '';
+            divMask.appendChild(parseForm);
+        };
+    });
 };
+
 function insertWssCommentForm(wssComment) {
-	const wsCommentEdited = {};
-	wsCommentEdited[wssComment.id] = {};
-	wsCommentEdited[wssComment.id].left = wssComment.left;
-	wsCommentEdited[wssComment.id].message = wssComment.message;
-	wsCommentEdited[wssComment.id].timestamp = wssComment.timestamp;
-	wsCommentEdited[wssComment.id].top = wssComment.top;
-	updateCommentForm(wsCommentEdited);
+    const wsCommentEdited = {};
+    wsCommentEdited[wssComment.id] = {};
+    wsCommentEdited[wssComment.id].left = wssComment.left;
+    wsCommentEdited[wssComment.id].message = wssComment.message;
+    wsCommentEdited[wssComment.id].timestamp = wssComment.timestamp;
+    wsCommentEdited[wssComment.id].top = wssComment.top;
+    updateCommentForm(wsCommentEdited);
 };
+
+menu.addEventListener('click', () => {
+    document.querySelectorAll('.comments__form').forEach(form => {
+        if (form.dataset.hasComments === 'false') {
+            form.remove();
+        };
+        form.querySelector('.comments__marker-checkbox').checked = false;
+    });
+});
+
+menu.addEventListener('click', () => {
+    document.querySelectorAll('.comments__form').forEach(form => {
+        if (form.dataset.hasComments === 'false') {
+            form.remove();
+        };
+        form.querySelector('.comments__marker-checkbox').checked = false;
+    });
+});
+
+app.addEventListener('click', (event) => {
+    if (event.target == app) {
+        document.querySelectorAll('.comments__form').forEach(form => {
+            if (form.dataset.hasComments === 'false') {
+                form.remove();
+            };
+            form.querySelector('.comments__marker-checkbox').checked = false;
+        });
+    }
+});
+
+function func() {
+    // console.log(getComputedStyle(menu).height);
+    if (getComputedStyle(menu).height != '65px') {
+        menu.style.left = (app.offsetWidth - menu.offsetWidth) - 1 + 'px';
+    }
+}
+
+setInterval(func, 10);
