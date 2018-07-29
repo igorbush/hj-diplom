@@ -60,7 +60,55 @@ menu.style.top = app.offsetHeight / 2 - parseInt(getComputedStyle(menu).height) 
 currentImage.src = '';
 app.removeChild(commentsForm);
 
+function resizeCanvasAndMask() {
+    imgStyle = getComputedStyle(currentImage);
+    canvas.style.top = parseFloat(imgStyle.top) - parseFloat(imgStyle.height) / 2 + 'px';
+    canvas.style.left = parseFloat(imgStyle.left) - parseFloat(imgStyle.width) / 2 + 'px';
+    canvas.width = parseInt(imgStyle.width);
+    canvas.height = parseInt(imgStyle.height);
+    divMask.style.top = parseFloat(imgStyle.top) - parseFloat(imgStyle.height) / 2 + 'px';
+    divMask.style.left = parseFloat(imgStyle.left) - parseFloat(imgStyle.width) / 2 + 'px';
+    divMask.style.width = parseInt(imgStyle.width) + 'px';
+    divMask.style.height = parseInt(imgStyle.height) + 'px';
+};
 
+window.addEventListener('resize', () => {
+    canvas.style.top = parseFloat(imgStyle.top) - parseFloat(imgStyle.height) / 2 + 'px';
+    canvas.style.left = parseFloat(imgStyle.left) - parseFloat(imgStyle.width) / 2 + 'px';
+    divMask.style.top = parseFloat(imgStyle.top) - parseFloat(imgStyle.height) / 2 + 'px';
+    divMask.style.left = parseFloat(imgStyle.left) - parseFloat(imgStyle.width) / 2 + 'px';
+});
+
+function beforeLoadImg() {
+    resizeCanvasAndMask();
+    checkImg = false;
+    menu.dataset.state = 'selected';
+    share.dataset.state = 'selected';
+    shareTools.classList.remove('tool');
+    document.querySelectorAll('.comments__form').forEach(comment => { comment.remove() });
+    wss();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.style.background = '';
+};
+
+function clickOutsideCanvas() {
+    document.querySelectorAll('.comments__form').forEach(form => {
+        if (form.dataset.hasComments === 'false') {
+            form.remove();
+        };
+        form.querySelector('.comments__marker-checkbox').checked = false;
+    });
+};
+
+menu.addEventListener('click', () => {
+    clickOutsideCanvas();
+});
+
+app.addEventListener('click', (event) => {
+    if (event.target == app) {
+        clickOutsideCanvas()
+    };
+});
 
 ////////////////////////////   DRAG AND DROP   /////////////////////////////////
 
@@ -89,10 +137,11 @@ drag.addEventListener('mousedown', (event) => {
     document.addEventListener('mousemove', move);
 
     drag.addEventListener('mouseup', () => {
-        moveMenu = null;
+        moveMenu = false;
         document.removeEventListener('mousemove', move);
     });
 });
+
 drag.addEventListener('dragstart', () => {
     return false;
 });
@@ -123,25 +172,16 @@ currentImage.addEventListener('error', () => {
     checkImg = true;
 });
 
-if (sessionStorage.getItem('imgId')) {
+currentImage.addEventListener('load', beforeLoadImg);
 
+if (sessionStorage.getItem('imgId')) {
     imgId = sessionStorage.getItem('imgId');
     currentImage.src = sessionStorage.getItem('imgUrl');
     menuUrl.value = sessionStorage.getItem('imgSharedLink');
-    currentImage.addEventListener('load', () => {
-        resizeCanvas();
-        getMask();
-        checkImg = false;
-        menu.dataset.state = 'selected';
-        share.dataset.state = 'selected';
-        shareTools.classList.remove('tool');
-        wss();
-    });
-}
+};
 
 function showFile(file) {
     if (file.type === 'image/jpeg' || file.type === 'image/png') {
-        let imgSrc = URL.createObjectURL(file);
         let formData = new FormData();
         formData.append('title', file.name);
         formData.append('image', file);
@@ -157,28 +197,18 @@ function showFile(file) {
             if (xhr.status == 200) {
                 let imgData = JSON.parse(xhr.responseText);
                 imgId = imgData.id;
-                wss();
                 currentImage.src = imgData.url;
                 menuUrl.value = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
                 sessionStorage.setItem('imgId', imgData.id);
                 sessionStorage.setItem('imgUrl', imgData.url);
                 sessionStorage.setItem('imgSharedLink', `${window.location.origin}${window.location.pathname}?id=${imgData.id}`);
+
                 if (window.location.search) {
                     document.location.href = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
                 };
             };
         });
         xhr.send(formData);
-        currentImage.addEventListener('load', () => {
-            URL.revokeObjectURL(imgSrc);
-            resizeCanvas();
-            getMask();
-            checkImg = false;
-            menu.dataset.state = 'selected';
-            share.dataset.state = 'selected';
-            shareTools.classList.remove('tool');
-            document.querySelectorAll('.comments__form').forEach(comment => { comment.remove() });
-        });
     } else {
         showError('Неверный формат файла. Пожалуйста, выберите изображение в формате .jpg или .png.');
     }
@@ -217,21 +247,6 @@ inputFile.addEventListener('change', (event) => {
 
 ////////////////////////////////   DRAW   //////////////////////////////////////
 
-function resizeCanvas() {
-    imgStyle = getComputedStyle(currentImage);
-    canvas.style.top = parseFloat(imgStyle.top) - parseFloat(imgStyle.height) / 2 + 'px';
-    canvas.style.left = parseFloat(imgStyle.left) - parseFloat(imgStyle.width) / 2 + 'px';
-    canvas.width = parseInt(imgStyle.width);
-    canvas.height = parseInt(imgStyle.height);
-}
-
-window.addEventListener('resize', () => {
-    canvas.style.top = parseFloat(imgStyle.top) - parseFloat(imgStyle.height) / 2 + 'px';
-    canvas.style.left = parseFloat(imgStyle.left) - parseFloat(imgStyle.width) / 2 + 'px';
-    divMask.style.top = parseFloat(imgStyle.top) - parseFloat(imgStyle.height) / 2 + 'px';
-    divMask.style.left = parseFloat(imgStyle.left) - parseFloat(imgStyle.width) / 2 + 'px';
-});
-
 draw.addEventListener('click', () => {
     menu.dataset.state = 'selected';
     draw.dataset.state = 'selected';
@@ -243,15 +258,12 @@ draw.addEventListener('click', () => {
         isMouseDown = true;
         ctx.beginPath();
     });
-
     canvas.addEventListener('mouseup', () => {
         isMouseDown = false;
     });
-
     canvas.addEventListener('mouseout', () => {
         isMouseDown = false;
     });
-
     canvas.addEventListener('mousemove', circle);
 
     menuColor.forEach((colorItem) => {
@@ -274,18 +286,32 @@ function circle(event) {
         ctx.beginPath();
         ctx.moveTo(...point);
         trottledSendMask();
-    }
+    };
+};
+
+const trottledSendMask = throttleCanvas(sendMaskState, 1000);
+
+function sendMaskState() {
+    canvas.toBlob(function(blob) {
+        connection.send(blob);
+    });
+};
+
+function throttleCanvas(callback, delay) {
+    let isWaiting = false;
+    return function() {
+        if (!isWaiting) {
+            isWaiting = true;
+            setTimeout(() => {
+                callback();
+                isWaiting = false;
+            }, delay);
+        };
+    };
 };
 
 //////////////////////////////   COMMENTS   ////////////////////////////////////
 
-function getMask() {
-    imgStyle = getComputedStyle(currentImage);
-    divMask.style.top = parseFloat(imgStyle.top) - parseFloat(imgStyle.height) / 2 + 'px';
-    divMask.style.left = parseFloat(imgStyle.left) - parseFloat(imgStyle.width) / 2 + 'px';
-    divMask.style.width = parseInt(imgStyle.width) + 'px';
-    divMask.style.height = parseInt(imgStyle.height) + 'px';
-};
 comments.addEventListener('click', () => {
     menu.dataset.state = 'selected';
     comments.dataset.state = 'selected';
@@ -348,9 +374,9 @@ function createCommentForm(left, top) {
     let commentBody = document.createElement('div');
     commentBody.className = 'comments__body';
     let commentsLoader = imageLoader.querySelector('.loader').cloneNode(true);
+    commentsLoader.style.display = 'none';
     let commentInput = document.createElement('textarea');
     commentInput.className = 'comments__input';
-    // commentInput.type = 'text';
     commentInput.placeholder = 'Напишите ответ...';
     let commentClose = document.createElement('input');
     commentClose.className = 'comments__close';
@@ -362,7 +388,6 @@ function createCommentForm(left, top) {
     commentSubmit.type = 'submit';
     commentSubmit.value = 'Отправить';
     commentBody.appendChild(commentsLoader);
-    commentsLoader.style.display = 'none';
     commentBody.appendChild(commentInput);
     commentBody.appendChild(commentClose);
     commentBody.appendChild(commentSubmit);
@@ -372,8 +397,7 @@ function createCommentForm(left, top) {
     commentForm.style.display = '';
     commentForm.style.top = top + 'px';
     commentForm.style.left = left + 'px';
-    commentForm.style.zIndex = '2';
-    commentForm.dataset.leftTop = `${left};${top}`;
+    commentForm.style.zIndex = '3';
     commentForm.dataset.left = left;
     commentForm.dataset.top = top;
     commentForm.dataset.hasComments = 'false';
@@ -400,6 +424,7 @@ function createCommentForm(left, top) {
         event.preventDefault();
         commentMarkerCheckbox.checked = false;
     });
+
     commentSubmit.addEventListener('click', (event) => {
         event.preventDefault();
         let xhr = new XMLHttpRequest();
@@ -446,6 +471,7 @@ menuCopy.addEventListener('click', (event) => {
 ////////////////////////////   FOLLOWING A LINK   //////////////////////////////
 
 if (window.location.search) {
+    currentImage.src = '';
     menu.style.display = 'none';
     imageLoader.style.display = '';
     imgId = window.location.href.split('?id=')[1];
@@ -454,17 +480,16 @@ if (window.location.search) {
     xhr.send();
     xhr.addEventListener('load', () => {
         wss();
+        menu.style.display = '';
+        imageLoader.style.display = 'none';
         let getData = JSON.parse(xhr.responseText);
         currentImage.src = getData.url;
         menuUrl.value = window.location.href;
-        menu.style.display = '';
-        imageLoader.style.display = 'none';
         menu.dataset.state = 'selected';
         comments.dataset.state = 'selected';
         commentsTools.classList.remove('tool');
         currentImage.addEventListener('load', () => {
-            resizeCanvas();
-            getMask();
+            resizeCanvasAndMask();
             checkImg = false;
             menu.dataset.state = 'selected';
             modeElements.forEach(el => el.dataset.state = '');
@@ -476,8 +501,8 @@ if (window.location.search) {
             for (let key in parseComments) {
                 let comment = parseComments[key];
                 let parseForm;
-                if (divMask.querySelector(`form[style="top: ${comment.top}px; left: ${comment.left}px; z-index: 2;"]`) !== null) {
-                    parseForm = document.querySelector(`form[style="top: ${comment.top}px; left: ${comment.left}px; z-index: 2;"]`);
+                if (divMask.querySelector(`form[data-left="${comment.left}"][data-top="${comment.top}"]`) != null) {
+                    parseForm = document.querySelector(`form[data-left="${comment.left}"][data-top="${comment.top}"]`);
                 } else {
                     parseForm = createCommentForm(comment.left, comment.top);
                     divMask.appendChild(parseForm);
@@ -495,11 +520,6 @@ if (window.location.search) {
                 parseForm.dataset.hasComments = 'true';
             };
         });
-    });
-
-    xhr.addEventListener('loadstart', () => {
-        menu.style.display = 'none';
-        imageLoader.style.display = '';
     });
 };
 
@@ -524,27 +544,6 @@ function wss() {
             console.log(JSON.parse(event.data).message);
         };
     });
-};
-
-const trottledSendMask = throttleCanvas(sendMaskState, 1000);
-
-function sendMaskState() {
-    canvas.toBlob(function(blob) {
-        connection.send(blob);
-    });
-};
-
-function throttleCanvas(callback, delay) {
-    let isWaiting = false;
-    return function() {
-        if (!isWaiting) {
-            isWaiting = true;
-            setTimeout(() => {
-                callback();
-                isWaiting = false;
-            }, delay);
-        };
-    };
 };
 
 window.onbeforeunload = function() {
@@ -627,41 +626,3 @@ function insertWssCommentForm(wssComment) {
     wsCommentEdited[wssComment.id].top = wssComment.top;
     updateCommentForm(wsCommentEdited);
 };
-
-menu.addEventListener('click', () => {
-    document.querySelectorAll('.comments__form').forEach(form => {
-        if (form.dataset.hasComments === 'false') {
-            form.remove();
-        };
-        form.querySelector('.comments__marker-checkbox').checked = false;
-    });
-});
-
-menu.addEventListener('click', () => {
-    document.querySelectorAll('.comments__form').forEach(form => {
-        if (form.dataset.hasComments === 'false') {
-            form.remove();
-        };
-        form.querySelector('.comments__marker-checkbox').checked = false;
-    });
-});
-
-app.addEventListener('click', (event) => {
-    if (event.target == app) {
-        document.querySelectorAll('.comments__form').forEach(form => {
-            if (form.dataset.hasComments === 'false') {
-                form.remove();
-            };
-            form.querySelector('.comments__marker-checkbox').checked = false;
-        });
-    }
-});
-
-function func() {
-    // console.log(getComputedStyle(menu).height);
-    if (getComputedStyle(menu).height != '65px') {
-        menu.style.left = (app.offsetWidth - menu.offsetWidth) - 1 + 'px';
-    }
-}
-
-setInterval(func, 10);
