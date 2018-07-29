@@ -634,7 +634,7 @@ body {
   display: none;
 }
 
-.menu[data-state="initial"] > .menu__item.drag, .menu[data-state="initial"] > .menu__item.new, .menu[data-state="initial"] > .menu__item.burger {
+.menu[data-state="initial"] > .menu__item.drag, .menu[data-state="initial"] > .menu__item.new {
   display: inline-block;
 }
 
