@@ -55,8 +55,6 @@ const colors = {
     'purple': '#b36ade'
 };
 let currentColor = 'green';
-menu.style.left = app.offsetWidth / 2 - parseInt(getComputedStyle(menu).width) / 2 + 'px';
-menu.style.top = app.offsetHeight / 2 - parseInt(getComputedStyle(menu).height) / 2 + 'px';
 currentImage.src = '';
 app.removeChild(commentsForm);
 
@@ -90,6 +88,8 @@ function beforeLoadImg() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.style.background = '';
 };
+
+// fix trouble --close an empty comment form when clicking outside of canvas //
 
 function clickOutsideCanvas() {
     document.querySelectorAll('.comments__form').forEach(form => {
@@ -136,7 +136,7 @@ drag.addEventListener('mousedown', (event) => {
 
     document.addEventListener('mousemove', move);
 
-    drag.addEventListener('mouseup', () => {
+    document.addEventListener('mouseup', () => {
         moveMenu = false;
         document.removeEventListener('mousemove', move);
     });
@@ -146,7 +146,7 @@ drag.addEventListener('dragstart', () => {
     return false;
 });
 
-/////////////////////////////   BURGER AND MENU  /////////////////////////////////
+////////////////////////////   BURGER AND MENU  ////////////////////////////////
 
 menu.dataset.state = 'initial';
 burger.addEventListener('click', () => {
@@ -626,3 +626,36 @@ function insertWssCommentForm(wssComment) {
     wsCommentEdited[wssComment.id].top = wssComment.top;
     updateCommentForm(wsCommentEdited);
 };
+
+// fix trouble --Transferring items to another line when changing screen sizes //
+
+function tick() {
+    if (menu.offsetHeight > 65) {
+        let widthMode = 0;
+        let widthTool;
+        let widthBurg = parseInt(getComputedStyle(burger).width);
+        let widthDrag = parseInt(getComputedStyle(drag).width);
+        if(menu.dataset.state === 'default') {
+            modeElements.forEach(el => {
+                widthMode += parseInt(getComputedStyle(el).width);
+            });
+            menu.style.left = (app.offsetWidth - (widthDrag + widthMode)) - 5 + 'px';
+        } else {
+            modeElements.forEach(el => {
+                if (el.dataset.state === 'selected') {
+                    console.log(el);
+                    widthMode = parseInt(getComputedStyle(el).width);
+                };
+            });
+            toolsElements.forEach(el => {
+                if (!el.classList.contains('tool')) {
+                    console.log(el)
+                    widthTool = parseInt(getComputedStyle(el).width);
+                };
+            });
+            menu.style.left = (app.offsetWidth - (widthDrag + widthBurg + widthTool + widthMode)) - 5 + 'px';
+        };     
+    };
+    window.requestAnimationFrame(tick);
+};
+tick();
