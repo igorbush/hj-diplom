@@ -27,14 +27,10 @@ const menuColor = menu.querySelectorAll('.menu__color');
 const menuUrl = menu.querySelector('.menu__url');
 const menuCopy = menu.querySelector('.menu_copy');
 const imageLoader = app.querySelector('.image-loader');
-const canvas = document.createElement('canvas');
+const canvas = document.querySelector('canvas');
 let connection;
-canvas.style.position = 'absolute';
-app.insertBefore(canvas, error);
 const ctx = canvas.getContext('2d');
-let divMask = document.createElement('div');
-app.insertBefore(divMask, canvas);
-divMask.style.position = 'absolute';
+let divMask = document.querySelector('.div-mask');
 let imgId;
 let showComments = {};
 let moveMenu = false;
@@ -47,14 +43,7 @@ let isMouseDown = false;
 let needUpdate = true;
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
-const colors = {
-    'red': '#ea5d56',
-    'yellow': '#f3d135',
-    'green': '#6cbe47',
-    'blue': '#53a7f5',
-    'purple': '#b36ade'
-};
-let currentColor = 'green';
+let currentColor = '#6cbe47';
 currentImage.src = '';
 app.removeChild(commentsForm);
 
@@ -181,47 +170,44 @@ if (sessionStorage.getItem('imgId')) {
 };
 
 function showFile(file) {
-    if (file.type === 'image/jpeg' || file.type === 'image/png') {
-        let formData = new FormData();
-        formData.append('title', file.name);
-        formData.append('image', file);
-        let xhr = new XMLHttpRequest();
-        xhr.addEventListener('loadstart', () => {
-            imageLoader.style.display = '';
-        });
-        xhr.addEventListener('loadend', () => {
-            imageLoader.style.display = 'none';
-        });
-        xhr.open('POST', 'https://neto-api.herokuapp.com/pic', true);
-        xhr.addEventListener('load', () => {
-            if (xhr.status == 200) {
-                let imgData = JSON.parse(xhr.responseText);
-                imgId = imgData.id;
-                currentImage.src = imgData.url;
-                menuUrl.value = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
-                sessionStorage.setItem('imgId', imgData.id);
-                sessionStorage.setItem('imgUrl', imgData.url);
-                sessionStorage.setItem('imgSharedLink', `${window.location.origin}${window.location.pathname}?id=${imgData.id}`);
-
-                if (window.location.search) {
-                    document.location.href = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
-                };
-            };
-        });
-        xhr.send(formData);
-    } else {
-        showError('Неверный формат файла. Пожалуйста, выберите изображение в формате .jpg или .png.');
+    if (!(file.type === 'image/jpeg' || file.type === 'image/png')) {
+        return showError('Неверный формат файла. Пожалуйста, выберите изображение в формате .jpg или .png.');
     }
+    let formData = new FormData();
+    formData.append('title', file.name);
+    formData.append('image', file);
+    let xhr = new XMLHttpRequest();
+    xhr.addEventListener('loadstart', () => {
+        imageLoader.style.display = '';
+    });
+    xhr.addEventListener('loadend', () => {
+        imageLoader.style.display = 'none';
+    });
+    xhr.open('POST', 'https://neto-api.herokuapp.com/pic', true);
+    xhr.addEventListener('load', () => {
+        if (xhr.status == 200) {
+            let imgData = JSON.parse(xhr.responseText);
+            imgId = imgData.id;
+            currentImage.src = imgData.url;
+            menuUrl.value = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
+            sessionStorage.setItem('imgId', imgData.id);
+            sessionStorage.setItem('imgUrl', imgData.url);
+            sessionStorage.setItem('imgSharedLink', `${window.location.origin}${window.location.pathname}?id=${imgData.id}`);
+            if (window.location.search) {
+                document.location.href = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
+            };
+        };
+    });
+    xhr.send(formData);
 };
 
 app.addEventListener('drop', (event) => {
     event.preventDefault();
-    let file = event.dataTransfer.files[0];
-    if (checkImg) {
-        showFile(file);
-    } else {
-        showError('Чтобы загрузить новое изображение, пожалуйста, воспользуйтесь пунктом «Загрузить новое» в меню');
+    if (!checkImg) {
+        return showError('Чтобы загрузить новое изображение, пожалуйста, воспользуйтесь пунктом «Загрузить новое» в меню');
     }
+    let file = event.dataTransfer.files[0];
+    showFile(file);
 });
 
 app.addEventListener('dragover', (event) => {
@@ -268,25 +254,26 @@ draw.addEventListener('click', () => {
 
     menuColor.forEach((colorItem) => {
         colorItem.addEventListener('change', (event) => {
-            currentColor = event.target.value;
+            currentColor = event.target.dataset.hex;
         });
     });
 });
 
 function circle(event) {
-    if (isMouseDown) {
-        const point = [event.layerX, event.layerY];
-        ctx.fillStyle = colors[currentColor];
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = colors[currentColor];
-        ctx.lineTo(...point);
-        ctx.stroke();
-        ctx.arc(...point, 2, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(...point);
-        trottledSendMask();
+    if (!isMouseDown) {
+        return false;
     };
+    const point = [event.layerX, event.layerY];
+    ctx.fillStyle = currentColor;
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = currentColor;
+    ctx.lineTo(...point);
+    ctx.stroke();
+    ctx.arc(...point, 2, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(...point);
+    trottledSendMask();
 };
 
 const trottledSendMask = throttleCanvas(sendMaskState, 1000);
@@ -557,7 +544,7 @@ function updateCommentForm(newComment) {
         if (id in showComments) return;
         showComments[id] = newComment[id];
         let needCreateNewForm = true;
-        Array.from(divMask.querySelectorAll('.comments__form')).forEach(form => {
+        divMask.querySelectorAll('.comments__form').forEach(form => {
             if (+form.dataset.left === showComments[id].left && +form.dataset.top === showComments[id].top) {
                 let parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
                 parseComment.dataset.commentId = showComments[id].id;
