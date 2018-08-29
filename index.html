@@ -9,7 +9,7 @@
 
   <body>
     <div class="wrap app" data-state="initial">
-      <ul class="menu">
+      <ul class="menu" data-state="initial">
         <li class="menu__item drag"></li>
 
         <li class="menu__item burger">
@@ -38,11 +38,11 @@
           <span class="menu__item-title">Рисовать</span>
         </li>
         <li class="menu__item tool draw-tools">
-          <input class="menu__color red" type="radio" name="color" value="red"><span></span>
-          <input class="menu__color yellow" type="radio" name="color" value="yellow"><span></span>
-          <input class="menu__color green" type="radio" name="color" value="green" checked><span></span>
-          <input class="menu__color blue" type="radio" name="color" value="blue"><span></span>
-          <input class="menu__color purple" type="radio" name="color" value="purple"><span></span>
+          <input class="menu__color red" type="radio" name="color" value="red" data-hex="#ea5d56"><span></span>
+          <input class="menu__color yellow" type="radio" name="color" value="yellow" data-hex="#f3d135"><span></span>
+          <input class="menu__color green" type="radio" name="color" value="green" data-hex="#6cbe47" checked><span></span>
+          <input class="menu__color blue" type="radio" name="color" value="blue" data-hex="#53a7f5"><span></span>
+          <input class="menu__color purple" type="radio" name="color" value="purple" data-hex="#b36ade"><span></span>
         </li>
 
         <li class="menu__item mode share" data-state="">
@@ -56,8 +56,9 @@
       </ul>
 
       <img class="current-image" src="./pic/image.jpg">
-      
-      <div class="error" style="display: none;">
+      <div class="div-mask" style="position: absolute;"></div>
+      <canvas style="position: absolute"></canvas>
+      <div class="error" style="display: none">
         <h4 class="error__header">Ошибка</h4>
         <p class="error__message">Неверный формат файла. Пожалуйста, выберите изображение в формате .jpg или .png.</p>
       </div>
