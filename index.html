@@ -19,6 +19,7 @@
         <li class="menu__item mode new">
           <i class="menu__icon new-icon"></i>
           <span class="menu__item-title">Загрузить<br>новое</span>
+          <input class="hidden-input" type="file" accept="image/png,image/jpeg">
         </li>
 
         <li class="menu__item mode comments" data-state="">
@@ -55,15 +56,15 @@
         </li>
       </ul>
 
-      <img class="current-image" src="./pic/image.jpg">
+      <img class="current-image" src="">
       <div class="div-mask" style="position: absolute;"></div>
       <canvas style="position: absolute"></canvas>
-      <div class="error" style="display: none">
+      <div class="error invisible">
         <h4 class="error__header">Ошибка</h4>
         <p class="error__message">Неверный формат файла. Пожалуйста, выберите изображение в формате .jpg или .png.</p>
       </div>
       
-      <div class="image-loader" style="display: none;">
+      <div class="image-loader invisible">
         <div class="loader">
           <span></span>
           <span></span>
@@ -78,16 +79,8 @@
         <span class="comments__marker"></span><input type="checkbox" class="comments__marker-checkbox">
         <div class="comments__body">
           <div class="comment">
-            <p class="comment__time">28.02.18 19:09:33</p>
-            <p class="comment__message">Здесь будет комментарий</p>
-          </div>
-          <div class="comment">
-            <p class="comment__time">28.02.18 19:11:01</p>
-            <p class="comment__message">А здесь будет многострочный комментарий, строки на 2 хотя бы.</p>
-          </div>
-          <div class="comment">
-            <p class="comment__time">28.02.18 23:58:01</p>
-            <p class="comment__message">А когда они будут?</p>
+            <p class="comment__time"></p>
+            <p class="comment__message"></p>
           </div>
           <div class="comment">
             <div class="loader">
