@@ -17,7 +17,7 @@ const share = menu.querySelector('.share');
 const shareTools = menu.querySelector('.share-tools');
 const currentImage = app.querySelector('.current-image');
 const commentsForm = app.querySelector('.comments__form');
-const commentsLoader = commentsForm.querySelector('.loader');
+const commentMain = commentsForm.querySelector('.comment');
 const error = app.querySelector('.error');
 const errorHeader = error.querySelector('.error__header');
 const errorMessage = error.querySelector('.error__message');
@@ -44,7 +44,6 @@ let needUpdate = true;
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
 let currentColor = '#6cbe47';
-currentImage.src = '';
 app.removeChild(commentsForm);
 
 function resizeCanvasAndMask() {
@@ -150,10 +149,10 @@ burger.addEventListener('click', () => {
 //////////////////////////////   ADD FILE   ////////////////////////////////////
 
 function showError(text) {
-    error.style.display = '';
+    error.classList.remove('invisible');
     errorMessage.innerText = text;
     setTimeout(() => {
-        error.style.display = 'none';
+        error.classList.add('invisible');
     }, 4000)
 }
 
@@ -178,10 +177,10 @@ function showFile(file) {
     formData.append('image', file);
     let xhr = new XMLHttpRequest();
     xhr.addEventListener('loadstart', () => {
-        imageLoader.style.display = '';
+        imageLoader.classList.remove('invisible');
     });
     xhr.addEventListener('loadend', () => {
-        imageLoader.style.display = 'none';
+        imageLoader.classList.add('invisible');
     });
     xhr.open('POST', 'https://neto-api.herokuapp.com/pic', true);
     xhr.addEventListener('load', () => {
@@ -211,21 +210,10 @@ app.addEventListener('drop', (event) => {
 });
 
 app.addEventListener('dragover', (event) => {
-    event.preventDefault()
+    event.preventDefault();
 });
 
-let inputFile = document.createElement('input');
-inputFile.type = 'file';
-inputFile.style.position = 'absolute';
-inputFile.style.top = '0';
-inputFile.style.left = '0';
-inputFile.style.position = 'absolute';
-inputFile.style.width = getComputedStyle(newMode).width;
-inputFile.style.height = getComputedStyle(newMode).height;
-inputFile.style.opacity = '0';
-inputFile.style.cursor = 'pointer';
-inputFile.accept = 'image/png,image/jpeg';
-newMode.appendChild(inputFile);
+let inputFile = document.querySelector('.hidden-input');
 inputFile.addEventListener('change', (event) => {
     let file = event.target.files[0];
     showFile(file);
@@ -335,59 +323,33 @@ function addCommentEvent(event) {
 
 function addMessage(message, timeStamp) {
     let date = new Date(timeStamp);
-    let comment = document.createElement('div');
-    comment.className = 'comment';
-    let commentTime = document.createElement('p');
-    commentTime.className = 'comment__time';
+    let comment = commentMain.cloneNode(true);
+    let commentTime = comment.querySelector('.comment__time');
     commentTime.innerText = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-    let commentMessage = document.createElement('p');
-    commentMessage.className = 'comment__message';
+    let commentMessage = comment.querySelector('.comment__message');
     commentMessage.innerText = message;
-    comment.appendChild(commentTime);
-    comment.appendChild(commentMessage);
     return comment;
 };
 
 function createCommentForm(left, top) {
-    let commentForm = document.createElement('form');
-    commentForm.className = 'comments__form';
-    let commentMarker = document.createElement('span');
-    commentMarker.className = 'comments__marker';
-    let commentMarkerCheckbox = document.createElement('input');
-    commentMarkerCheckbox.className = 'comments__marker-checkbox';
-    commentMarkerCheckbox.type = 'checkbox';
+    let newCommentForm = commentsForm.cloneNode(true);
+    let commentBody = newCommentForm.querySelector('.comments__body')
+    let commentTemplate = newCommentForm.querySelector('.comment');
+    commentBody.removeChild(commentTemplate);
+    let commentMarkerCheckbox = newCommentForm.querySelector('.comments__marker-checkbox');
     commentMarkerCheckbox.checked = true;
-    commentMarkerCheckbox.style.display = 'none';
-    let commentBody = document.createElement('div');
-    commentBody.className = 'comments__body';
-    let commentsLoader = imageLoader.querySelector('.loader').cloneNode(true);
-    commentsLoader.style.display = 'none';
-    let commentInput = document.createElement('textarea');
-    commentInput.className = 'comments__input';
-    commentInput.placeholder = 'Напишите ответ...';
-    let commentClose = document.createElement('input');
-    commentClose.className = 'comments__close';
-    commentClose.type = 'button';
-    commentClose.value = 'Закрыть';
+    let commentsLoader = newCommentForm.querySelector('.comment .loader');
+    commentsLoader.classList.add('invisible');
+    let commentClose = newCommentForm.querySelector('.comments__close');
     commentClose.disabled = true;
-    let commentSubmit = document.createElement('input');
-    commentSubmit.className = 'comments__submit';
-    commentSubmit.type = 'submit';
-    commentSubmit.value = 'Отправить';
-    commentBody.appendChild(commentsLoader);
-    commentBody.appendChild(commentInput);
-    commentBody.appendChild(commentClose);
-    commentBody.appendChild(commentSubmit);
-    commentForm.appendChild(commentMarker);
-    commentForm.appendChild(commentMarkerCheckbox);
-    commentForm.appendChild(commentBody);
-    commentForm.style.display = '';
-    commentForm.style.top = top + 'px';
-    commentForm.style.left = left + 'px';
-    commentForm.style.zIndex = '3';
-    commentForm.dataset.left = left;
-    commentForm.dataset.top = top;
-    commentForm.dataset.hasComments = 'false';
+    let commentSubmit = newCommentForm.querySelector('.comments__submit');
+    let commentInput = newCommentForm.querySelector('.comments__input');
+    newCommentForm.style.top = top + 'px';
+    newCommentForm.style.left = left + 'px';
+    newCommentForm.style.zIndex = '3';
+    newCommentForm.dataset.left = left;
+    newCommentForm.dataset.top = top;
+    newCommentForm.dataset.hasComments = 'false';
     commentMarkerCheckbox.addEventListener('click', (event) => {
         document.querySelectorAll('.comments__form').forEach(form => {
             if (form.dataset.hasComments === 'false') {
@@ -419,23 +381,23 @@ function createCommentForm(left, top) {
         let app = `message=${encodeURIComponent(commentInput.value)}&left=${encodeURIComponent(left)}&top=${encodeURIComponent(top)}`;
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.addEventListener('loadstart', () => {
-            commentsLoader.style.display = '';
+            commentsLoader.classList.remove('invisible');
         });
         xhr.addEventListener('loadend', () => {
-            commentsLoader.style.display = 'none';
+            commentsLoader.classList.add('invisible');
         });
         xhr.send(app);
     });
-    return commentForm;
+    return newCommentForm;
 };
 
 menuToggle.forEach((toggle) => {
     toggle.addEventListener('change', (event) => {
         if (event.target.value === 'on') {
-            document.querySelectorAll('.comments__form').forEach(form => { form.style.display = '' });
+            document.querySelectorAll('.comments__form').forEach(form => { form.classList.remove('invisible') });
         };
         if (event.target.value === 'off') {
-            document.querySelectorAll('.comments__form').forEach(form => { form.style.display = 'none' });
+            document.querySelectorAll('.comments__form').forEach(form => { form.classList.add('invisible') });
         }
     });
 });
@@ -458,17 +420,16 @@ menuCopy.addEventListener('click', (event) => {
 ////////////////////////////   FOLLOWING A LINK   //////////////////////////////
 
 if (window.location.search) {
-    currentImage.src = '';
-    menu.style.display = 'none';
-    imageLoader.style.display = '';
+    menu.classList.add('invisible');
+    imageLoader.classList.remove('invisible');
     imgId = window.location.href.split('?id=')[1];
     let xhr = new XMLHttpRequest();
     xhr.open('get', `https://neto-api.herokuapp.com/pic/${imgId}`, true);
     xhr.send();
     xhr.addEventListener('load', () => {
         wss();
-        menu.style.display = '';
-        imageLoader.style.display = 'none';
+        menu.classList.remove('invisible');
+        imageLoader.classList.add('invisible');
         let getData = JSON.parse(xhr.responseText);
         currentImage.src = getData.url;
         menuUrl.value = window.location.href;
@@ -497,10 +458,10 @@ if (window.location.search) {
                 let parseComment = addMessage(comment.message, comment.timestamp);
                 parseComment.dataset.commentId = key;
                 let commentBody = parseForm.querySelector('.comments__body');
-                let commentsLoader = parseForm.querySelector('.loader');
+                let commentsLoader = parseForm.querySelector('.comment .loader').parentNode;
                 commentBody.insertBefore(parseComment, commentsLoader);
                 let commentMarkerCheckbox = parseForm.querySelector('.comments__marker-checkbox');
-                commentMarkerCheckbox.style.display = '';
+                commentMarkerCheckbox.classList.remove('invisible');
                 commentMarkerCheckbox.checked = false;
                 let commentClose = parseForm.querySelector('.comments__close');
                 commentClose.disabled = false;
@@ -549,11 +510,11 @@ function updateCommentForm(newComment) {
                 let parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
                 parseComment.dataset.commentId = showComments[id].id;
                 let commentBody = form.querySelector('.comments__body');
-                let commentsLoader = form.querySelector('.loader');
+                let commentsLoader = commentBody.querySelector('.comment .loader').parentNode;
                 commentBody.insertBefore(parseComment, commentsLoader);
                 let commentMarkerCheckbox = form.querySelector('.comments__marker-checkbox');
                 let commentInput = form.querySelector('.comments__input');
-                commentMarkerCheckbox.style.display = '';
+                commentMarkerCheckbox.classList.remove('invisible');
 
                 if (commentMarkerCheckbox.checked === true) {
                     document.querySelectorAll('.comments__marker-checkbox').forEach(marker => {
@@ -578,11 +539,11 @@ function updateCommentForm(newComment) {
             let parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
             parseComment.dataset.commentId = newComment[id].id;
             let commentBody = parseForm.querySelector('.comments__body');
-            let commentsLoader = parseForm.querySelector('.loader');
+            let commentsLoader = commentBody.querySelector('.comment .loader').parentNode;
             commentBody.insertBefore(parseComment, commentsLoader);
             let commentMarkerCheckbox = parseForm.querySelector('.comments__marker-checkbox');
             let commentInput = parseForm.querySelector('.comments__input');
-            commentMarkerCheckbox.style.display = '';
+            commentMarkerCheckbox.classList.remove('invisible');
 
             if (commentMarkerCheckbox.checked === true) {
                 document.querySelectorAll('.comments__marker-checkbox').forEach(marker => {
