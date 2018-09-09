@@ -2,35 +2,44 @@
 
 ///////////////////////////////////   INIT   ///////////////////////////////////
 
-const body = document.querySelector('body');
-const app = body.querySelector('.app');
-const menu = app.querySelector('.menu');
-const drag = menu.querySelector('.drag');
-const burger = menu.querySelector('.burger');
-const newMode = menu.querySelector('.mode');
-const comments = menu.querySelector('.comments');
-const commentsTools = menu.querySelector('.comments-tools');
-const menuToggle = commentsTools.querySelectorAll('.menu__toggle');
-const draw = menu.querySelector('.draw');
-const drawTools = menu.querySelector('.draw-tools');
-const share = menu.querySelector('.share');
-const shareTools = menu.querySelector('.share-tools');
-const currentImage = app.querySelector('.current-image');
-const commentsForm = app.querySelector('.comments__form');
-const commentMain = commentsForm.querySelector('.comment');
-const error = app.querySelector('.error');
-const errorHeader = error.querySelector('.error__header');
-const errorMessage = error.querySelector('.error__message');
-const modeElements = menu.querySelectorAll('.mode');
-const toolsElements = menu.querySelectorAll('.tool');
-const menuColor = menu.querySelectorAll('.menu__color');
-const menuUrl = menu.querySelector('.menu__url');
-const menuCopy = menu.querySelector('.menu_copy');
-const imageLoader = app.querySelector('.image-loader');
-const canvas = document.querySelector('canvas');
+function $(node, selector, firstElement = true) {
+    if (firstElement) {
+        return node.querySelector(selector);
+    }
+    else {
+        return node.querySelectorAll(selector);
+    }
+};
+
+const body = $(document, 'body');
+const app = $(body, '.app');
+const menu = $(app, '.menu');
+const drag = $(menu, '.drag');
+const burger = $(menu, '.burger');
+const newMode = $(menu, '.mode');
+const comments = $(menu, '.comments');
+const commentsTools = $(menu, '.comments-tools');
+const menuToggle = $(commentsTools, '.menu__toggle', false);
+const draw = $(menu, '.draw');
+const drawTools = $(menu, '.draw-tools');
+const share = $(menu, '.share');
+const shareTools = $(menu, '.share-tools');
+const currentImage = $(app, '.current-image');
+const commentsForm = $(app, '.comments__form');
+const commentMain = $(commentsForm, '.comment');
+const error = $(app, '.error');
+const errorHeader = $(error, '.error__header');
+const errorMessage = $(error, '.error__message');
+const modeElements = $(menu, '.mode', false);
+const toolsElements = $(menu, '.tool', false);
+const menuColor = $(menu, '.menu__color', false);
+const menuUrl = $(menu, '.menu__url');
+const menuCopy = $(menu, '.menu_copy');
+const imageLoader = $(app, '.image-loader');
+const canvas = $(document, 'canvas');
 let connection;
 const ctx = canvas.getContext('2d');
-let divMask = document.querySelector('.div-mask');
+const divMask = $(document, '.div-mask');
 let imgId;
 let showComments = {};
 let moveMenu = false;
@@ -71,7 +80,7 @@ function beforeLoadImg() {
     menu.dataset.state = 'selected';
     share.dataset.state = 'selected';
     shareTools.classList.remove('tool');
-    document.querySelectorAll('.comments__form').forEach(comment => { comment.remove() });
+    $(document, '.comments__form', false).forEach(comment => { comment.remove() });
     wss();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.style.background = '';
@@ -80,11 +89,11 @@ function beforeLoadImg() {
 // fix trouble --close an empty comment form when clicking outside of canvas //
 
 function clickOutsideCanvas() {
-    document.querySelectorAll('.comments__form').forEach(form => {
+    $(document, '.comments__form', false).forEach(form => {
         if (form.dataset.hasComments === 'false') {
             form.remove();
         };
-        form.querySelector('.comments__marker-checkbox').checked = false;
+        $(form, '.comments__marker-checkbox').checked = false;
     });
 };
 
@@ -92,7 +101,7 @@ menu.addEventListener('click', () => {
     clickOutsideCanvas();
 });
 
-app.addEventListener('click', (event) => {
+app.addEventListener('click', event => {
     if (event.target == app) {
         clickOutsideCanvas()
     };
@@ -100,7 +109,7 @@ app.addEventListener('click', (event) => {
 
 ////////////////////////////   DRAG AND DROP   /////////////////////////////////
 
-drag.addEventListener('mousedown', (event) => {
+drag.addEventListener('mousedown', event => {
     minY = app.offsetTop;
     minX = app.offsetLeft;
     maxX = app.offsetLeft + app.offsetWidth - menu.offsetWidth - 1;
@@ -172,10 +181,10 @@ function showFile(file) {
     if (!(file.type === 'image/jpeg' || file.type === 'image/png')) {
         return showError('Неверный формат файла. Пожалуйста, выберите изображение в формате .jpg или .png.');
     }
-    let formData = new FormData();
+    const formData = new FormData();
     formData.append('title', file.name);
     formData.append('image', file);
-    let xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest();
     xhr.addEventListener('loadstart', () => {
         imageLoader.classList.remove('invisible');
     });
@@ -185,7 +194,7 @@ function showFile(file) {
     xhr.open('POST', 'https://neto-api.herokuapp.com/pic', true);
     xhr.addEventListener('load', () => {
         if (xhr.status == 200) {
-            let imgData = JSON.parse(xhr.responseText);
+            const imgData = JSON.parse(xhr.responseText);
             imgId = imgData.id;
             currentImage.src = imgData.url;
             menuUrl.value = `${window.location.origin}${window.location.pathname}?id=${imgData.id}`;
@@ -200,22 +209,22 @@ function showFile(file) {
     xhr.send(formData);
 };
 
-app.addEventListener('drop', (event) => {
+app.addEventListener('drop', event => {
     event.preventDefault();
     if (!checkImg) {
         return showError('Чтобы загрузить новое изображение, пожалуйста, воспользуйтесь пунктом «Загрузить новое» в меню');
     }
-    let file = event.dataTransfer.files[0];
+    const file = event.dataTransfer.files[0];
     showFile(file);
 });
 
-app.addEventListener('dragover', (event) => {
+app.addEventListener('dragover', event => {
     event.preventDefault();
 });
 
-let inputFile = document.querySelector('.hidden-input');
-inputFile.addEventListener('change', (event) => {
-    let file = event.target.files[0];
+const inputFile = $(document, '.hidden-input');
+inputFile.addEventListener('change', event => {
+    const file = event.target.files[0];
     showFile(file);
 });
 
@@ -240,8 +249,8 @@ draw.addEventListener('click', () => {
     });
     canvas.addEventListener('mousemove', circle);
 
-    menuColor.forEach((colorItem) => {
-        colorItem.addEventListener('change', (event) => {
+    menuColor.forEach(colorItem => {
+        colorItem.addEventListener('change', event => {
             currentColor = event.target.dataset.hex;
         });
     });
@@ -300,21 +309,21 @@ function addCommentEvent(event) {
     event.preventDefault();
 
     function addCommentForm(event) {
-        document.querySelectorAll('.comments__marker-checkbox').forEach(marker => {
+        $(document, '.comments__marker-checkbox', false).forEach(marker => {
             marker.checked = false;
         });
-        document.querySelectorAll('.comments__close').forEach(closeButton => {
+        $(document, '.comments__close', false).forEach(closeButton => {
             closeButton.disabled = false;
         });
-        document.querySelectorAll('.comments__form').forEach(form => {
+        $(document, '.comments__form', false).forEach(form => {
             if (form.dataset.hasComments === 'false') {
                 form.remove();
             };
         });
         if (menuToggle[0].checked === true) {
-            let left = event.layerX - 21;
-            let top = event.layerY - 14;
-            let newForm = createCommentForm(left, top);
+            const left = event.layerX - 21;
+            const top = event.layerY - 14;
+            const newForm = createCommentForm(left, top);
             divMask.appendChild(newForm);
         };
     };
@@ -322,43 +331,43 @@ function addCommentEvent(event) {
 };
 
 function addMessage(message, timeStamp) {
-    let date = new Date(timeStamp);
-    let comment = commentMain.cloneNode(true);
-    let commentTime = comment.querySelector('.comment__time');
+    const date = new Date(timeStamp);
+    const comment = commentMain.cloneNode(true);
+    const commentTime = $(comment, '.comment__time');
     commentTime.innerText = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-    let commentMessage = comment.querySelector('.comment__message');
+    const commentMessage = $(comment, '.comment__message');
     commentMessage.innerText = message;
     return comment;
 };
 
 function createCommentForm(left, top) {
-    let newCommentForm = commentsForm.cloneNode(true);
-    let commentBody = newCommentForm.querySelector('.comments__body')
-    let commentTemplate = newCommentForm.querySelector('.comment');
+    const newCommentForm = commentsForm.cloneNode(true);
+    const commentBody = $(newCommentForm, '.comments__body');
+    const commentTemplate = $(newCommentForm, '.comment');
     commentBody.removeChild(commentTemplate);
-    let commentMarkerCheckbox = newCommentForm.querySelector('.comments__marker-checkbox');
+    const commentMarkerCheckbox = $(newCommentForm, '.comments__marker-checkbox');
     commentMarkerCheckbox.checked = true;
-    let commentsLoader = newCommentForm.querySelector('.comment .loader');
+    const commentsLoader = $(newCommentForm, '.comment .loader');
     commentsLoader.classList.add('invisible');
-    let commentClose = newCommentForm.querySelector('.comments__close');
+    const commentClose = $(newCommentForm, '.comments__close');
     commentClose.disabled = true;
-    let commentSubmit = newCommentForm.querySelector('.comments__submit');
-    let commentInput = newCommentForm.querySelector('.comments__input');
+    const commentSubmit = $(newCommentForm, '.comments__submit');
+    const commentInput = $(newCommentForm, '.comments__input');
     newCommentForm.style.top = top + 'px';
     newCommentForm.style.left = left + 'px';
     newCommentForm.style.zIndex = '3';
     newCommentForm.dataset.left = left;
     newCommentForm.dataset.top = top;
     newCommentForm.dataset.hasComments = 'false';
-    commentMarkerCheckbox.addEventListener('click', (event) => {
-        document.querySelectorAll('.comments__form').forEach(form => {
+    commentMarkerCheckbox.addEventListener('click', event => {
+        $(document, '.comments__form', false).forEach(form => {
             if (form.dataset.hasComments === 'false') {
                 form.remove();
             }
             form.style.zIndex = '2';
         });
         if (event.target.checked === true) {
-            document.querySelectorAll('.comments__marker-checkbox').forEach(marker => {
+            $(document, '.comments__marker-checkbox', false).forEach(marker => {
                 marker.checked = false;
                 event.target.checked = true;
                 event.target.parentElement.style.zIndex = '3';
@@ -369,16 +378,16 @@ function createCommentForm(left, top) {
         };
     });
 
-    commentClose.addEventListener('click', (event) => {
+    commentClose.addEventListener('click', event => {
         event.preventDefault();
         commentMarkerCheckbox.checked = false;
     });
 
-    commentSubmit.addEventListener('click', (event) => {
+    commentSubmit.addEventListener('click', event => {
         event.preventDefault();
-        let xhr = new XMLHttpRequest();
+        const xhr = new XMLHttpRequest();
         xhr.open('post', `https://neto-api.herokuapp.com/pic/${imgId}/comments`, true);
-        let app = `message=${encodeURIComponent(commentInput.value)}&left=${encodeURIComponent(left)}&top=${encodeURIComponent(top)}`;
+        const app = `message=${encodeURIComponent(commentInput.value)}&left=${encodeURIComponent(left)}&top=${encodeURIComponent(top)}`;
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.addEventListener('loadstart', () => {
             commentsLoader.classList.remove('invisible');
@@ -391,13 +400,13 @@ function createCommentForm(left, top) {
     return newCommentForm;
 };
 
-menuToggle.forEach((toggle) => {
-    toggle.addEventListener('change', (event) => {
+menuToggle.forEach(toggle => {
+    toggle.addEventListener('change', event => {
         if (event.target.value === 'on') {
-            document.querySelectorAll('.comments__form').forEach(form => { form.classList.remove('invisible') });
+            $(document, '.comments__form', false).forEach(form => { form.classList.remove('invisible') });
         };
         if (event.target.value === 'off') {
-            document.querySelectorAll('.comments__form').forEach(form => { form.classList.add('invisible') });
+            $(document, '.comments__form', false).forEach(form => { form.classList.add('invisible') });
         }
     });
 });
@@ -412,7 +421,7 @@ share.addEventListener('click', () => {
     canvas.removeEventListener('click', addCommentEvent);
     canvas.removeEventListener('mousemove', circle);
 });
-menuCopy.addEventListener('click', (event) => {
+menuCopy.addEventListener('click', event => {
     event.preventDefault();
     menuUrl.select();
     document.execCommand('copy');
@@ -423,14 +432,14 @@ if (window.location.search) {
     menu.classList.add('invisible');
     imageLoader.classList.remove('invisible');
     imgId = window.location.href.split('?id=')[1];
-    let xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest();
     xhr.open('get', `https://neto-api.herokuapp.com/pic/${imgId}`, true);
     xhr.send();
     xhr.addEventListener('load', () => {
         wss();
         menu.classList.remove('invisible');
         imageLoader.classList.add('invisible');
-        let getData = JSON.parse(xhr.responseText);
+        const getData = JSON.parse(xhr.responseText);
         currentImage.src = getData.url;
         menuUrl.value = window.location.href;
         menu.dataset.state = 'selected';
@@ -445,25 +454,25 @@ if (window.location.search) {
             comments.dataset.state = 'selected';
             commentsTools.classList.remove('tool');
             canvas.addEventListener('click', addCommentEvent);
-            let parseComments = getData.comments;
+            const parseComments = getData.comments;
             for (let key in parseComments) {
-                let comment = parseComments[key];
+                const comment = parseComments[key];
                 let parseForm;
-                if (divMask.querySelector(`form[data-left="${comment.left}"][data-top="${comment.top}"]`) != null) {
-                    parseForm = document.querySelector(`form[data-left="${comment.left}"][data-top="${comment.top}"]`);
+                if ($(divMask, `form[data-left="${comment.left}"][data-top="${comment.top}"]`) != null) {
+                    parseForm = $(document, `form[data-left="${comment.left}"][data-top="${comment.top}"]`);
                 } else {
                     parseForm = createCommentForm(comment.left, comment.top);
                     divMask.appendChild(parseForm);
                 };
-                let parseComment = addMessage(comment.message, comment.timestamp);
+                const parseComment = addMessage(comment.message, comment.timestamp);
                 parseComment.dataset.commentId = key;
-                let commentBody = parseForm.querySelector('.comments__body');
-                let commentsLoader = parseForm.querySelector('.comment .loader').parentNode;
+                const commentBody = $(parseForm, '.comments__body');
+                const commentsLoader = $(parseForm, '.comment .loader').parentNode;
                 commentBody.insertBefore(parseComment, commentsLoader);
-                let commentMarkerCheckbox = parseForm.querySelector('.comments__marker-checkbox');
+                const commentMarkerCheckbox = $(parseForm, '.comments__marker-checkbox');
                 commentMarkerCheckbox.classList.remove('invisible');
                 commentMarkerCheckbox.checked = false;
-                let commentClose = parseForm.querySelector('.comments__close');
+                const commentClose = $(parseForm, '.comments__close');
                 commentClose.disabled = false;
                 parseForm.dataset.hasComments = 'true';
             };
@@ -505,19 +514,19 @@ function updateCommentForm(newComment) {
         if (id in showComments) return;
         showComments[id] = newComment[id];
         let needCreateNewForm = true;
-        divMask.querySelectorAll('.comments__form').forEach(form => {
+        $(divMask, '.comments__form', false).forEach(form => {
             if (+form.dataset.left === showComments[id].left && +form.dataset.top === showComments[id].top) {
-                let parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
+                const parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
                 parseComment.dataset.commentId = showComments[id].id;
-                let commentBody = form.querySelector('.comments__body');
-                let commentsLoader = commentBody.querySelector('.comment .loader').parentNode;
+                const commentBody = $(form, '.comments__body');
+                const commentsLoader = $(commentBody, '.comment .loader').parentNode;
                 commentBody.insertBefore(parseComment, commentsLoader);
-                let commentMarkerCheckbox = form.querySelector('.comments__marker-checkbox');
-                let commentInput = form.querySelector('.comments__input');
+                const commentMarkerCheckbox = $(form, '.comments__marker-checkbox');
+                const commentInput = $(form, '.comments__input');
                 commentMarkerCheckbox.classList.remove('invisible');
 
                 if (commentMarkerCheckbox.checked === true) {
-                    document.querySelectorAll('.comments__marker-checkbox').forEach(marker => {
+                    $(document, '.comments__marker-checkbox', false).forEach(marker => {
                         marker.checked = false;
                         commentMarkerCheckbox.checked = true;
                         commentMarkerCheckbox.parentElement.style.zIndex = '3';
@@ -527,7 +536,7 @@ function updateCommentForm(newComment) {
                     commentMarkerCheckbox.parentElement.style.zIndex = '2';
                 };
 
-                let commentClose = form.querySelector('.comments__close');
+                const commentClose = $(form, '.comments__close');
                 commentClose.disabled = false;
                 form.dataset.hasComments = 'true';
                 needCreateNewForm = false;
@@ -535,18 +544,18 @@ function updateCommentForm(newComment) {
             };
         });
         if (needCreateNewForm) {
-            let parseForm = createCommentForm(showComments[id].left, showComments[id].top);
-            let parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
+            const parseForm = createCommentForm(showComments[id].left, showComments[id].top);
+            const parseComment = addMessage(showComments[id].message, showComments[id].timestamp);
             parseComment.dataset.commentId = newComment[id].id;
-            let commentBody = parseForm.querySelector('.comments__body');
-            let commentsLoader = commentBody.querySelector('.comment .loader').parentNode;
+            const commentBody = $(parseForm, '.comments__body');
+            const commentsLoader = $(commentBody, '.comment .loader').parentNode;
             commentBody.insertBefore(parseComment, commentsLoader);
-            let commentMarkerCheckbox = parseForm.querySelector('.comments__marker-checkbox');
-            let commentInput = parseForm.querySelector('.comments__input');
+            const commentMarkerCheckbox = $(parseForm, '.comments__marker-checkbox');
+            const commentInput = $(parseForm, '.comments__input');
             commentMarkerCheckbox.classList.remove('invisible');
 
             if (commentMarkerCheckbox.checked === true) {
-                document.querySelectorAll('.comments__marker-checkbox').forEach(marker => {
+                $(document, '.comments__marker-checkbox', false).forEach(marker => {
                     marker.checked = false;
                     commentMarkerCheckbox.checked = true;
                     commentMarkerCheckbox.parentElement.style.zIndex = '3';
@@ -556,7 +565,7 @@ function updateCommentForm(newComment) {
                 commentMarkerCheckbox.parentElement.style.zIndex = '2';
             };
             commentMarkerCheckbox.checked = false;
-            let commentClose = parseForm.querySelector('.comments__close');
+            const commentClose = $(parseForm, '.comments__close');
             commentClose.disabled = false;
             parseForm.dataset.hasComments = 'true';
             commentInput.value = '';
@@ -581,8 +590,8 @@ function tick() {
     if (menu.offsetHeight > 65) {
         let widthMode = 0;
         let widthTool;
-        let widthBurg = parseInt(getComputedStyle(burger).width);
-        let widthDrag = parseInt(getComputedStyle(drag).width);
+        const widthBurg = parseInt(getComputedStyle(burger).width);
+        const widthDrag = parseInt(getComputedStyle(drag).width);
         if(menu.dataset.state === 'default') {
             modeElements.forEach(el => {
                 widthMode += parseInt(getComputedStyle(el).width);
